@@ -12,7 +12,6 @@ public class DiskAccesor implements TweenAccessor<Disk> {
 
     @Override
     public int getValues(Disk target, int tweenType, float[] returnValues) {
-        System.out.println("tween getValues: " + tweenType);
         switch (tweenType) {
 
             case X:
@@ -33,13 +32,12 @@ public class DiskAccesor implements TweenAccessor<Disk> {
 
     @Override
     public void setValues(Disk target, int tweenType, float[] newValues) {
-        System.out.println("tween setValues: " + tweenType);
         switch (tweenType) {
             case X:
                 target.x = (int) newValues[0];
                 break;
             case Y:
-                target.y = (int) newValues[1];
+                target.y = (int) newValues[0];
                 break;
             case XY:
                 target.x = (int) newValues[0];

@@ -1,8 +1,6 @@
 package com.xavierguzman;
 
-import aurelienribon.tweenengine.Timeline;
-import aurelienribon.tweenengine.Tween;
-import aurelienribon.tweenengine.TweenManager;
+import aurelienribon.tweenengine.*;
 
 import javax.swing.*;
 import java.awt.*;
@@ -25,17 +23,27 @@ public class Canvas extends JComponent implements HanoiEventListener {
     private final Rod[] rods;
     private final BufferedImage buffer;
     private final Font uiFont;
+    Thread simulation;
+
+    long lastUpdate;
+
+    float fps = 1f / 30f;
+    float nextFrameAccum = 0f;
+
+    String message = "";
 
     ArrayList<Timeline> animationTimelines = new ArrayList<>();
 
-    public Canvas() throws IOException {
+    public Canvas(){
         setPreferredSize(new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT ));
-//        setIgnoreRepaint(true);
+        setIgnoreRepaint(true);
         rods = new Rod[] {
                 new Rod(138, 'A'),
                 new Rod(288, 'B'),
                 new Rod(438,'C')
         };
+
+        rods[0].setDiskCount(3);
 
         initDisks();
 
@@ -51,19 +59,12 @@ public class Canvas extends JComponent implements HanoiEventListener {
 
     private void initDisks(){
         disks = new Disk[]{
-                new Disk((int) rods[0].getCenterX(), (int) (rods[0].getMaxY() - Disk.HEIGHT), 3),
+                new Disk((int) rods[0].getCenterX(), (int) (rods[0].getMaxY() - (Disk.HEIGHT * 3)), 1),
                 new Disk((int) rods[0].getCenterX(), (int) (rods[0].getMaxY() - (Disk.HEIGHT * 2)), 2),
-                new Disk((int) rods[0].getCenterX(), (int) (rods[0].getMaxY() - (Disk.HEIGHT * 3)), 1)
+                new Disk((int) rods[0].getCenterX(), (int) (rods[0].getMaxY() - Disk.HEIGHT), 3)
         };
     }
 
-//    public boolean isSimulationRunning() {
-//        return isSimulationRunning;
-//    }
-//
-//    public void setSimulationRunning(boolean simulationRunning) {
-//        isSimulationRunning = simulationRunning;
-//    }
 
     @Override
     protected void paintComponent(Graphics g) {
@@ -103,15 +104,11 @@ public class Canvas extends JComponent implements HanoiEventListener {
 
         //render info
         g2d.setColor(Color.GRAY);
-        g2d.drawString("Hola Hanoi", 100, 50);
+        g2d.drawString(message, 20, 20);
         g2d.dispose();
 
         //render to component
         g.drawImage(buffer, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, null);
-    }
-
-    public void stop(){
-        isSimulationRunning = false;
     }
 
     public void startSimulation(){
@@ -120,63 +117,67 @@ public class Canvas extends JComponent implements HanoiEventListener {
 
         initDisks();
         repaint();
+
+        simulation = new Thread(() -> {
+            lastUpdate = System.currentTimeMillis();
+            int frameSkipsLeft = 0;
+
+            while (isSimulationRunning) {
+
+                long now = System.currentTimeMillis();
+                double ellapsed = (now - lastUpdate) / 1000f;
+                lastUpdate = now;
+                float delta = Math.min((float)ellapsed, fps);
+                nextFrameAccum += delta;
+
+                tweenManager.update(delta);
+
+                repaint();
+            }
+
+        });
+
+        simulation.start();
         isSimulationRunning = true;
         solver.solve(3);
     }
 
-    public void run() {
-//        requestFocusInWindow();
-
-        long lastUpdate = System.nanoTime();
-        float nextRenderTime = 0;
-        long renderTime = 1000000000 / 30;
-        int frameSkipsLeft = 0;
-        Color clearColor = Color.LIGHT_GRAY;
-
-        while (isSimulationRunning) {
-            long now = System.nanoTime();
-            float delta = (now - lastUpdate) / 1000000000f; //change the time to milliseconds isntead of nano seconds.
-            lastUpdate = now;
-
-            delta = Math.min(delta,  1 / 60f);
-
-            tweenManager.update(delta);
-            nextRenderTime -= delta;
-            if ( nextRenderTime <= 0  || frameSkipsLeft == 0){
-//                draw();
-                nextRenderTime = now + renderTime;
-                frameSkipsLeft = MAX_FRAMESKIP;
-            }else{
-                frameSkipsLeft--;
-            }
-
-            if (tweenManager.size() == 0 )
-                stop();
-        }
-    }
-
     @Override
     public void onMoveDiskToRod(int disk, char toRod, char fromRod) {
-        int toRodIndex = toRod - 'A';
-        Rod r = rods[toRodIndex];
+        int destRodIndex = toRod - 'A';
+        int srcRodIndex = fromRod - 'A';
+        int distanceX = Math.abs(toRod - fromRod);
+        Rod destRod = rods[destRodIndex];
+        Rod srcRod = rods[srcRodIndex];
         Disk d = disks[disk-1];
-        int targetY = (int) r.getMaxY();
+        int targetY = destRod.getBottomY() - Disk.HEIGHT;
         Timeline newAnimation = Timeline.createSequence()
+                .push(Tween.call((int type, BaseTween<?> source) -> {
+                    message = "Move disk " + disk + " from rod " + fromRod + " to rod " + toRod;
+                }))
                 .push(
                         Tween.to(d, DiskAccesor.Y, 0.5f).target(50)
                 )
                 .push(
-                        Tween.to(d, DiskAccesor.X, 0.5f).target((float) (r.getCenterX() - d.width))
+                        Tween.to(d, DiskAccesor.X, 0.5f * distanceX).target((float) (destRod.getCenterX() - (d.width /2)))
                 )
                 .push(
                         Tween.to(d, DiskAccesor.Y, 0.5f).target(targetY)
                 ).build();
+        destRod.addDisk();
+        srcRod.removeDisk();
 
         animationTimelines.add(newAnimation);
     }
 
     @Override
     public void onSolved() {
-        animationTimelines.forEach( x -> tweenManager.add(x));
+        Timeline timeline = Timeline.createSequence();
+        animationTimelines.forEach( x -> timeline.pushPause(1f).push(x));
+
+        timeline.push(Tween.call((int type, BaseTween<?> source) -> {
+            isSimulationRunning = false;
+        }));
+        timeline.start(tweenManager);
     }
 }

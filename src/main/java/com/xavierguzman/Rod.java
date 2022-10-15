@@ -7,6 +7,7 @@ public class Rod extends Rectangle {
     private final char label;
     private final GradientPaint gradient;
     private final String caption;
+    private int diskCount;
 
     public Rod(int x, char label){
         super(x, 110, 25, 165);
@@ -24,6 +25,22 @@ public class Rod extends Rectangle {
         g.fillRect(x, y, width, height);
 
         g.setColor(Color.white);
-        g.drawString(caption, x, y + height + 15);
+        g.drawString(caption, x - 15, y + height + 18);
+    }
+
+    public void setDiskCount(int i) {
+        this.diskCount = i;
+    }
+
+    public void addDisk(){
+        setDiskCount(diskCount + 1);
+    }
+
+    public void removeDisk(){
+        setDiskCount( diskCount - 1);
+    }
+
+    public int getBottomY(){
+        return (int) (getMaxY() - (diskCount * Disk.HEIGHT));
     }
 }
