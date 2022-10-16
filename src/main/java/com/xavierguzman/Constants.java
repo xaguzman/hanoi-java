@@ -3,6 +3,11 @@ package com.xavierguzman;
 import java.awt.*;
 
 public class Constants {
+
+    static final int SCREEN_WIDTH = 600;
+    static final int SCREEN_HEIGHT = 400;
+    static final int FLOOR_HEIGHT=100;
+
     public static final Color woodGradientStart = new Color(164, 116, 73);
     public static final Color woodGradientEnd = new Color(98, 52, 18);
 
@@ -14,4 +19,6 @@ public class Constants {
 
     public static final Color greenGradientStart = new Color(64, 186, 15);
     public static final Color greenGradientEnd = new Color(34, 79, 29);
+
+
 }

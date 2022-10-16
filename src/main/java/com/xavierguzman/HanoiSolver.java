@@ -16,7 +16,7 @@ public class HanoiSolver {
             return;
         }
         towerOfHanoi(n-1, from_rod, aux_rod, to_rod);
-        System.out.println("Move disk " + n + " from rod " +  from_rod + " to rod " + to_rod);
+//        System.out.println("Move disk " + n + " from rod " +  from_rod + " to rod " + to_rod);
         for (HanoiEventListener listener: listeners) {
             listener.onMoveDiskToRod(n, to_rod, from_rod);
         }

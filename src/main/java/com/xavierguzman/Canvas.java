@@ -5,20 +5,17 @@ import aurelienribon.tweenengine.*;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.IOException;
 import java.util.ArrayList;
+
+import static com.xavierguzman.Constants.*;
 
 public class Canvas extends JComponent implements HanoiEventListener {
     private final HanoiSolver solver;
+
     private boolean isSimulationRunning;
 
     TweenManager tweenManager;
 
-    static final int SCREEN_WIDTH = 600;
-    static final int SCREEN_HEIGHT = 400;
-    static final int MAX_FRAMESKIP = 10;
-    static final int FLOOR_HEIGHT=100;
-    static final int BOARD_HEIGHT = 25;
     private Disk[] disks;
     private final Rod[] rods;
     private final BufferedImage buffer;
@@ -29,10 +26,11 @@ public class Canvas extends JComponent implements HanoiEventListener {
 
     float fps = 1f / 30f;
     float nextFrameAccum = 0f;
-
     String message = "";
 
     ArrayList<Timeline> animationTimelines = new ArrayList<>();
+    private int diskCount = 3;
+    ArrayList<CanvasListener> listeners = new ArrayList<>();
 
     public Canvas(){
         setPreferredSize(new Dimension(SCREEN_WIDTH, SCREEN_HEIGHT ));
@@ -42,8 +40,6 @@ public class Canvas extends JComponent implements HanoiEventListener {
                 new Rod(288, 'B'),
                 new Rod(438,'C')
         };
-
-        rods[0].setDiskCount(3);
 
         initDisks();
 
@@ -58,11 +54,22 @@ public class Canvas extends JComponent implements HanoiEventListener {
     }
 
     private void initDisks(){
-        disks = new Disk[]{
-                new Disk((int) rods[0].getCenterX(), (int) (rods[0].getMaxY() - (Disk.HEIGHT * 3)), 1),
-                new Disk((int) rods[0].getCenterX(), (int) (rods[0].getMaxY() - (Disk.HEIGHT * 2)), 2),
-                new Disk((int) rods[0].getCenterX(), (int) (rods[0].getMaxY() - Disk.HEIGHT), 3)
-        };
+        disks = new Disk[diskCount];
+        int bottomY = (int) rods[0].getMaxY();
+        int midX = (int) rods[0].getCenterX();
+        for (int i = 0; i < disks.length; i++){
+            Disk d = new Disk(midX, bottomY - Disk.HEIGHT * (disks.length - i), i+1);
+            disks[i] = d;
+        }
+        rods[0].setDiskCount(disks.length);
+        rods[1].setDiskCount(0);
+        rods[2].setDiskCount(0);
+    }
+
+    public void setDiskCount(int value){
+        diskCount = value;
+        initDisks();
+        repaint();
     }
 
 
@@ -120,7 +127,6 @@ public class Canvas extends JComponent implements HanoiEventListener {
 
         simulation = new Thread(() -> {
             lastUpdate = System.currentTimeMillis();
-            int frameSkipsLeft = 0;
 
             while (isSimulationRunning) {
 
@@ -139,7 +145,7 @@ public class Canvas extends JComponent implements HanoiEventListener {
 
         simulation.start();
         isSimulationRunning = true;
-        solver.solve(3);
+        solver.solve(diskCount);
     }
 
     @Override
@@ -154,6 +160,7 @@ public class Canvas extends JComponent implements HanoiEventListener {
         Timeline newAnimation = Timeline.createSequence()
                 .push(Tween.call((int type, BaseTween<?> source) -> {
                     message = "Move disk " + disk + " from rod " + fromRod + " to rod " + toRod;
+                    listeners.forEach(x -> x.onStepChange(message));
                 }))
                 .push(
                         Tween.to(d, DiskAccesor.Y, 0.5f).target(50)
@@ -177,7 +184,23 @@ public class Canvas extends JComponent implements HanoiEventListener {
 
         timeline.push(Tween.call((int type, BaseTween<?> source) -> {
             isSimulationRunning = false;
+            tweenManager.killAll();
+            animationTimelines.clear();
         }));
         timeline.start(tweenManager);
+    }
+
+    public boolean isSimulationRunning() {
+        return isSimulationRunning;
+    }
+
+    public void addListener(CanvasListener l){
+        listeners.add(l);
+    }
+    
+
+
+    public interface CanvasListener{
+        void onStepChange(String message);
     }
 }

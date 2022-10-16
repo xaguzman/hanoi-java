@@ -16,16 +16,18 @@ public class Disk extends Rectangle {
         this.y = y;
         this.size = size;
 
-        switch(size){
-            case 1:
+        int colorIdx = size % 3;
+
+        switch(colorIdx){
+            case 0:
                 startGradientColor = Constants.redGradientStart;
                 endGradientColor = Constants.redGradientEnd;
                 break;
-            case 2:
+            case 1:
                 startGradientColor = Constants.greenGradientStart;
                 endGradientColor = Constants.greenGradientEnd;
                 break;
-            case 3:
+            case 2:
                 startGradientColor = Constants.blueGradientStart;
                 endGradientColor = Constants.blueGradientEnd;
         }
@@ -43,5 +45,8 @@ public class Disk extends Rectangle {
             endGradientColor);
         g.setPaint(gradient);
         g.fillRect(x, y, width, height);
+
+        g.setColor(Color.WHITE);
+        g.drawString(String.valueOf(size), (int) (getCenterX() - 5), (int) (getCenterY() + 7));
     }
 }
