@@ -45,7 +45,8 @@ public class Main {
                     "3 disks",
                     "4 disks",
                     "5 disks",
-                    "6 disks"
+                    "6 disks",
+                    "7 disks",
             };
             SpinnerListModel disksModel = new SpinnerListModel(diskStrings);
             JSpinner spinner = new JSpinner(disksModel);

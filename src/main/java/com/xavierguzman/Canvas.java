@@ -163,13 +163,13 @@ public class Canvas extends JComponent implements HanoiEventListener {
                     listeners.forEach(x -> x.onStepChange(message));
                 }))
                 .push(
-                        Tween.to(d, DiskAccesor.Y, 0.5f).target(50)
+                        Tween.to(d, DiskAccesor.Y, 0.1f).target(50)
                 )
                 .push(
-                        Tween.to(d, DiskAccesor.X, 0.5f * distanceX).target((float) (destRod.getCenterX() - (d.width /2)))
+                        Tween.to(d, DiskAccesor.X, 0.1f * distanceX).target((float) (destRod.getCenterX() - (d.width /2)))
                 )
                 .push(
-                        Tween.to(d, DiskAccesor.Y, 0.5f).target(targetY)
+                        Tween.to(d, DiskAccesor.Y, 0.1f).target(targetY)
                 ).build();
         destRod.addDisk();
         srcRod.removeDisk();
@@ -180,7 +180,7 @@ public class Canvas extends JComponent implements HanoiEventListener {
     @Override
     public void onSolved() {
         Timeline timeline = Timeline.createSequence();
-        animationTimelines.forEach( x -> timeline.pushPause(1f).push(x));
+        animationTimelines.forEach( x -> timeline.pushPause(0.2f).push(x));
 
         timeline.push(Tween.call((int type, BaseTween<?> source) -> {
             isSimulationRunning = false;
